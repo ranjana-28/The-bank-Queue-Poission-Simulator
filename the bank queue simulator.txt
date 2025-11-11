@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+
+#define SIM_TIME 480  // 8 hours = 480 minutes
+
+// --- Customer Structure ---
+typedef struct Customer {
+    int arrival_time;
+    int service_start;
+    int service_time;
+    struct Customer* next;
+} Customer;
+
+// --- Queue (Linked List) ---
+typedef struct {
+    Customer* front;
+    Customer* rear;
+    int length;
+} Queue;
+
+// --- Queue Functions ---
+void enqueue(Queue* q, int arrival_time, int service_time) {
+    Customer* new_customer = (Customer*)malloc(sizeof(Customer));
+    new_customer->arrival_time = arrival_time;
+    new_customer->service_start = -1;
+    new_customer->service_time = service_time;
+    new_customer->next = NULL;
+
+    if (q->rear == NULL) {
+        q->front = q->rear = new_customer;
+    } else {
+        q->rear->next = new_customer;
+        q->rear = new_customer;
+    }
+    q->length++;
+}
+
+Customer* dequeue(Queue* q) {
+    if (q->front == NULL) return NULL;
+    Customer* temp = q->front;
+    q->front = q->front->next;
+    if (q->front == NULL) q->rear = NULL;
+    q->length--;
+    return temp;
+}
+
+// --- Poisson Arrival Generator ---
+int poisson(double lambda) {
+    double L = exp(-lambda);
+    double p = 1.0;
+    int k = 0;
+    do {
+        k++;
+        p *= ((double)rand() / RAND_MAX);
+    } while (p > L);
+    return k - 1;
+}
+
+// --- Main Simulation ---
+int main() {
+    srand(time(NULL));
+
+    double lambda;
+    printf("Enter average number of customers arriving per minute (lambda): ");
+    scanf("%lf", &lambda);
+
+    Queue queue = {NULL, NULL, 0};
+    int teller_busy_time = 0;
+    int total_customers = 0;
+    int served_customers = 0;
+    double total_wait_time = 0.0;
+    int max_wait = 0;
+
+    for (int minute = 0; minute < SIM_TIME; minute++) {
+        // Step 1: Simulate arrivals
+        int arrivals = poisson(lambda);
+        for (int i = 0; i < arrivals; i++) {
+            int service_time = rand() % 2 + 2;  // 2–3 minutes
+            enqueue(&queue, minute, service_time);
+            total_customers++;
+        }
+
+        // Step 2: Serve customers
+        if (teller_busy_time > 0) {
+            teller_busy_time--; // Teller is busy
+        } else if (queue.front != NULL) {
+            Customer* c = dequeue
